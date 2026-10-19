@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 #
 # Скрипт №2. Фоновый мониторинг системы.
-# Использование: ./system_monitor.sh START|STOP|STATUS
-#
 # Раз в 10 минут пишет строку в system_report_YYYY-MM-DD.csv:
 # timestamp;all_memory;free_memory;%memory_used;%cpu_used;%disk_used;load_average_1m
 # Память - в мегабайтах.
