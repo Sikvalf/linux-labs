@@ -1,0 +1,89 @@
+# По заданию нужна версия 3.8+. Docker Compose v2 поле version игнорирует
+# и может вывести предупреждение "version is obsolete" — это нормально.
+version: "3.8"
+
+name: lab2
+
+services:
+  nginx:
+    image: nginx:1.28.0-alpine
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"          # единственный порт, открытый наружу
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - frontend
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/nginx-health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+  app:
+    build:
+      context: ./app
+      args:
+        APP_VERSION: ${APP_TAG:-1.0.0}
+    image: ${APP_IMAGE:-lab2-app}:${APP_TAG:-1.0.0}
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-lab2}
+      DB_USER: ${POSTGRES_USER:-lab2}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в файле .env}
+    expose:
+      - "8080"                          # доступен только внутри сетей Docker
+    networks:
+      - frontend                        # nginx -> app
+      - backend                         # app -> db
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true                     # файловая система контейнера только для чтения
+    tmpfs:
+      - /tmp                            # Tomcat пишет временные файлы в /tmp
+    security_opt:
+      - no-new-privileges:true
+
+  db:
+    image: postgres:17.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lab2}
+      POSTGRES_USER: ${POSTGRES_USER:-lab2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в файле .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data # данные переживают перезапуск и down
+    networks:
+      - backend                         # наружу порт 5432 не публикуется
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Опционально: веб-интерфейс к БД, доступен через nginx по /adminer/
+  # Запуск: docker compose --profile tools up -d
+  adminer:
+    image: adminer:5.3.0
+    profiles: ["tools"]
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  frontend:
+  backend:
+    internal: true                      # у backend-сети нет выхода наружу
+
+volumes:
+  pgdata:
