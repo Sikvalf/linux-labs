@@ -1,0 +1,21 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  # приложение стоит за nginx: доверяем X-Forwarded-* заголовкам
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: lab2-app
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/lab2}
+    username: ${DB_USER:lab2}
+    password: ${DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 5000
+
+app:
+  version: ${APP_VERSION:dev}
