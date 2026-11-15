@@ -1,0 +1,12 @@
+---
+- name: Install and configure Nginx
+  hosts: nginx-server
+  become: true
+  roles:
+    - nginx
+
+- name: Deploy Spring Boot application
+  hosts: app-server
+  become: true
+  roles:
+    - app

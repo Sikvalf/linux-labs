@@ -1,0 +1,58 @@
+---
+- name: Check operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'Ubuntu'
+      - ansible_facts['distribution_version'] == '24.04'
+    fail_msg: "Ubuntu 24.04 is required"
+
+- name: Install Java 21 and required tools
+  ansible.builtin.apt:
+    name:
+      - openjdk-21-jre-headless
+      - tar
+      - curl
+    state: present
+    update_cache: true
+
+- name: Create application directory
+  ansible.builtin.file:
+    path: /opt/lab3-app
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: "0755"
+
+- name: Check Java installation
+  ansible.builtin.command: java -version
+  register: java_version
+  changed_when: false
+
+- name: Show Java version
+  ansible.builtin.debug:
+    var: java_version.stderr
+
+- name: Deploy Spring Boot JAR
+  ansible.builtin.copy:
+    src: /workspace/app/target/app.jar
+    dest: /opt/lab3-app/app.jar
+    owner: ansible
+    group: ansible
+    mode: "0644"
+
+- name: Deploy application startup script
+  ansible.builtin.copy:
+    src: start.sh
+    dest: /opt/lab3-app/start.sh
+    owner: ansible
+    group: ansible
+    mode: "0755"
+
+- name: Start Spring Boot application
+  ansible.builtin.shell: |
+    nohup /opt/lab3-app/start.sh > /opt/lab3-app/app.log 2>&1 < /dev/null &
+  args:
+    executable: /bin/bash
+    creates: /opt/lab3-app/app.log
+  become: true
+  become_user: ansible

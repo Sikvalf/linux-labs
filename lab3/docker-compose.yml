@@ -1,0 +1,41 @@
+services:
+  ansible-master:
+    build:
+      context: .
+      dockerfile: docker/master/Dockerfile
+    container_name: lab3-ansible-master
+    volumes:
+      - ./ansible:/workspace/ansible
+      - ./ssh:/root/.ssh:ro
+      - ../lab2/app:/workspace/app:ro
+    networks:
+      - lab3-network
+    depends_on:
+      - nginx-server
+      - app-server
+
+  nginx-server:
+    build:
+      context: .
+      dockerfile: docker/target/Dockerfile
+    container_name: lab3-nginx-server
+    ports:
+      - "8080:80"
+    volumes:
+      - ./ssh/id_ed25519.pub:/home/ansible/.ssh/authorized_keys:ro
+    networks:
+      - lab3-network
+
+  app-server:
+    build:
+      context: .
+      dockerfile: docker/target/Dockerfile
+    container_name: lab3-app-server
+    volumes:
+      - ./ssh/id_ed25519.pub:/home/ansible/.ssh/authorized_keys:ro
+    networks:
+      - lab3-network
+
+networks:
+  lab3-network:
+    driver: bridge

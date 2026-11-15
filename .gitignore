@@ -1,0 +1,20 @@
+# SSH private keys
+**/id_ed25519
+**/id_rsa
+**/*.pem
+
+# Java / Maven
+**/target/
+*.class
+
+# Logs
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
